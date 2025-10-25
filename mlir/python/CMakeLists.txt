@@ -43,7 +43,6 @@ declare_mlir_python_sources(MLIRPythonSources.ExecutionEngine
   ADD_TO_PARENT MLIRPythonSources
   SOURCES
     execution_engine.py
-    _mlir_libs/_mlirExecutionEngine.pyi
   SOURCES_GLOB
     runtime/*.py
 )
@@ -982,6 +981,31 @@ if(_mlir_python_stubgen_enabled)
       ROOT_DIR "${CMAKE_CURRENT_BINARY_DIR}/type_stubs"
       ADD_TO_PARENT MLIRPythonTestSources.Dialects
       SOURCES _mlir_libs/_mlirPythonTestNanobind.pyi
+    )
+  endif()
+
+  # _mlirExecutionEngine stubgen
+  if(MLIR_ENABLE_EXECUTION_ENGINE)
+    get_target_property(_execution_engine_srcs MLIRPythonExtension.ExecutionEngine INTERFACE_SOURCES)
+    mlir_generate_type_stubs(
+      # This is the FQN path because dialect modules import _mlir when loaded. See above.
+      MODULE_NAME mlir._mlir_libs._mlirExecutionEngine
+      DEPENDS_TARGETS
+        # You need both _mlir and _mlirExecutionEngine because dialect modules import _mlir when loaded
+        # (so _mlir needs to be built before calling stubgen).
+        MLIRPythonModules.extension._mlir.dso
+        MLIRPythonModules.extension._mlirExecutionEngine.dso
+      OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/type_stubs/_mlir_libs"
+      OUTPUTS _mlirExecutionEngine.pyi
+      DEPENDS_TARGET_SRC_DEPS "${_execution_engine_srcs}"
+      IMPORT_PATHS "${MLIRPythonModules_ROOT_PREFIX}/.."
+    )
+    set(_mlirExecutionEngine_typestub_gen_target "${NB_STUBGEN_CUSTOM_TARGET}")
+    declare_mlir_python_sources(
+      MLIRPythonExtension.ExecutionEngine.type_stub_gen
+      ROOT_DIR "${CMAKE_CURRENT_BINARY_DIR}/type_stubs"
+      ADD_TO_PARENT MLIRPythonExtension.ExecutionEngine
+      SOURCES _mlir_libs/_mlirExecutionEngine.pyi
     )
   endif()
 endif()
